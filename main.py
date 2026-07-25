@@ -141,17 +141,13 @@ def fetch_bms(event_code, date_code, region_code, region_slug,
             f"https://in.bookmyshow.com/movies/"
             f"{region_slug}/buytickets/{event_code}/"
         ),
-        "sec-ch-ua": '"Chromium";v="145", "Not:A-Brand";v="99"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"macOS"',
         "x-app-code": "WEB",
         "x-region-code": region_code,
         "x-region-slug": region_slug,
         "x-geohash": geohash,
         "x-latitude": lat,
         "x-longitude": lon,
-        "x-location-selection": "manual",
-        "x-lsid": "",
+        "x-location-selection": "manual"
     }
     params = {
         "eventCode": event_code,
