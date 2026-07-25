@@ -29,9 +29,6 @@ CONFIG = {
     "time_period": os.getenv("BMS_TIME", ""),      # e.g. "evening,night", empty = all
 }
 
-RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
-RESEND_TO_EMAIL = os.getenv("RESEND_TO_EMAIL", "")
-RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "aviiciii@resend.dev")
 
 STATE_FILE = "bms_state.json"
 
