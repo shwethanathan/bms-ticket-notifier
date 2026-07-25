@@ -389,136 +389,67 @@ def _cat_status_label(status):
     return AVAIL_STATUS_MAP.get(status, ("UNKNOWN", ""))[0]
 
 
-def send_email(subject, changes, shows, movie_info):
-    api_key = RESEND_API_KEY.strip()
-    to = RESEND_TO_EMAIL.strip()
-    frm = RESEND_FROM_EMAIL.strip() or "onboarding@resend.dev"
+NTFY_TOPIC = os.getenv("NTFY_TOPIC", "")
 
-    if not api_key or not to:
-        print("  ⚠️  Skipping email — RESEND_API_KEY or RESEND_TO_EMAIL not set.")
+def send_ntfy(subject, changes, shows, movie_info):
+    topic = NTFY_TOPIC.strip()
+
+    if not topic:
+        print("⚠️ NTFY_TOPIC not set.")
         return
 
-    now_str = datetime.now().strftime("%d %b %Y, %I:%M %p")
-    movie_name = movie_info.get("name", "Movie")
+    movie = movie_info.get("name", "Movie")
 
-    # Build changes HTML
-    changes_html = ""
+    lines = [
+        f"🎬 {movie}",
+        "",
+    ]
+
     if changes:
-        rows = "".join(
-            f'<li style="padding:3px 0;font-size:14px;">{escape(c)}</li>'
-            for c in changes
-        )
-        changes_html = f"""
-        <h3 style="margin:0 0 8px 0;font-size:15px;font-weight:bold;color:#333;">
-            Changes Detected
-        </h3>
-        <ul style="margin:0 0 20px 0;padding-left:20px;line-height:1.6;color:#333;">
-            {rows}
-        </ul>"""
+        lines.append("⚡ Changes detected:")
+        for c in changes:
+            lines.append(f"• {c}")
+        lines.append("")
 
-    # Build shows section grouped by venue
-    venue_groups = {}
+    lines.append("Current showtimes:")
+
     for s in shows:
-        venue_groups.setdefault(s.venue_name, []).append(s)
+        cats = ", ".join(
+            f"{c.name} ₹{c.price} ({AVAIL_STATUS_MAP.get(c.status, ('UNKNOWN', ''))[0]})"
+            for c in s.categories
+        )
 
-    shows_html = ""
-    for vname, vshows in venue_groups.items():
-        show_rows = ""
-        for s in vshows:
-            cats = " | ".join(
-                f"{escape(c.name)} Rs.{escape(c.price)} ({_cat_status_label(c.status)})"
-                for c in s.categories
-            )
-            fmt = f" [{escape(s.screen_attr)}]" if s.screen_attr else ""
-            show_rows += (
-                f'<tr>'
-                f'<td style="padding:5px 8px;border-bottom:1px solid #ddd;'
-                f'font-size:13px;vertical-align:top;">'
-                f'{escape(s.time)}{fmt}</td>'
-                f'<td style="padding:5px 8px;border-bottom:1px solid #ddd;'
-                f'font-size:13px;vertical-align:top;">'
-                f'{cats}</td>'
-                f'</tr>'
-            )
+        screen = f" [{s.screen_attr}]" if s.screen_attr else ""
 
-        shows_html += f"""
-        <p style="margin:14px 0 4px 0;font-size:14px;font-weight:bold;color:#333;">
-            {escape(vname)}
-        </p>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <tr style="background:#f5f5f5;">
-                <th style="padding:5px 8px;text-align:left;border-bottom:1px solid #ddd;
-                           font-weight:bold;">Time</th>
-                <th style="padding:5px 8px;text-align:left;border-bottom:1px solid #ddd;
-                           font-weight:bold;">Categories</th>
-            </tr>
-            {show_rows}
-        </table>"""
+        lines.append(
+            f"\n🎭 {s.venue_name}"
+            f"\n🕒 {s.time}{screen}"
+            f"\n📅 {s.date_code}"
+            f"\n💺 {cats}"
+        )
 
-    html = f"""<!doctype html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:24px;font-family:Arial,Helvetica,sans-serif;
-             font-size:14px;color:#333;background:#fff;">
-    <h2 style="margin:0 0 4px 0;font-size:18px;color:#111;">
-        BMS Alert: {escape(movie_name)}
-    </h2>
-    <p style="margin:0 0 20px 0;font-size:13px;color:#666;">
-        {escape(now_str)}
-    </p>
-    <hr style="border:none;border-top:1px solid #ddd;margin:0 0 20px 0;">
-    {changes_html}
-    <h3 style="margin:0 0 8px 0;font-size:15px;font-weight:bold;color:#333;">
-        Current Showtimes
-    </h3>
-    {shows_html}
-    <p style="margin:24px 0 0 0;font-size:12px;color:#999;">
-        This is an automated alert from BMS Ticket Notifier.
-    </p>
-</body>
-</html>"""
-
-    # Build plain-text version with full show details
-    plain_lines = [subject, "", f"Checked at: {now_str}", ""]
-    if changes:
-        plain_lines.append("Changes Detected:")
-        plain_lines.extend(f"  - {c}" for c in changes)
-        plain_lines.append("")
-    plain_lines.append("Current Showtimes:")
-    for vname, vshows in venue_groups.items():
-        plain_lines.append(f"\n{vname}")
-        for s in vshows:
-            cats = " | ".join(
-                f"{c.name} Rs.{c.price} ({_cat_status_label(c.status)})"
-                for c in s.categories
-            )
-            fmt = f" [{s.screen_attr}]" if s.screen_attr else ""
-            plain_lines.append(f"  {s.time}{fmt} - {cats}")
-    plain_lines.extend(["", "This is an automated alert from BMS Ticket Notifier."])
-    plain = "\n".join(plain_lines)
+    message = "\n".join(lines)
 
     try:
-        resp = requests.post(
-            "https://api.resend.com/emails",
+        response = requests.post(
+            f"https://ntfy.sh/{topic}",
+            data=message.encode("utf-8"),
             headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "from": frm, "to": [to],
-                "subject": subject,
-                "text": plain, "html": html,
+                "Title": subject,
+                "Priority": "5",
+                "Tags": "movie,ticket",
             },
             timeout=15,
         )
-        if resp.status_code in (200, 201):
-            print(f"  ✅ Email sent to {to}")
+
+        if response.status_code == 200:
+            print("✅ ntfy notification sent")
         else:
-            print(f"  ❌ Resend {resp.status_code}: {resp.text}")
-            sys.exit(1)
+            print(f"❌ ntfy failed ({response.status_code})")
+            print(response.text)
+
     except requests.RequestException as e:
-        print(f"  ❌ Email failed: {e}")
-        sys.exit(1)
+        print(f"❌ ntfy request failed: {e}")
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -601,7 +532,7 @@ def main():
         print(f"\n  ⚡ {len(changes)} change(s) detected:")
         for c in changes:
             print(f"     {c}")
-        send_email(
+        send_ntfy(
             f"BMS Alert: {movie_info['name']} - {len(changes)} change(s)",
             changes, filtered, movie_info,
         )
