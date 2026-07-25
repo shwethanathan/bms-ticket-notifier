@@ -147,26 +147,47 @@ def fetch_bms(event_code, date_code, region_code, region_slug,
         "x-geohash": geohash,
         "x-latitude": lat,
         "x-longitude": lon,
-        "x-location-selection": "manual"
+        "x-location-selection": "manual",
     }
+
     params = {
         "eventCode": event_code,
         "dateCode": date_code or "",
         "isDesktop": "true",
         "regionCode": region_code,
         "xLocationShared": "false",
-        "memberId": "", "lsId": "", "subCode": "",
-        "lat": lat, "lon": lon,
+        "memberId": "",
+        "lsId": "",
+        "subCode": "",
+        "lat": lat,
+        "lon": lon,
     }
-    try:
-        resp = requests.get(API_URL, headers=headers,
-                            params=params, timeout=15)
-        if resp.status_code == 200:
-            print(f"  HTTP {resp.status_code} for date {date_code}")
-            return resp.json()
-        print(f"  HTTP {resp.status_code} for date {date_code}")
-    except requests.RequestException as e:
-        print(f"  Request failed: {e}")
+
+    try_count = 0
+
+    while try_count < 5:
+        try:
+            resp = requests.get(
+                API_URL,
+                headers=headers,
+                params=params,
+                timeout=15,
+            )
+
+            if resp.status_code == 200:
+                print(f"  HTTP 200 for date {date_code}")
+                return resp.json()
+
+            print(f"  HTTP {resp.status_code} for date {date_code}. Retrying...")
+
+        except requests.RequestException as e:
+            print(f"  Request failed: {e}")
+
+        try_count += 1
+
+        if try_count < 5:
+            time.sleep(2)
+
     return None
 
 
