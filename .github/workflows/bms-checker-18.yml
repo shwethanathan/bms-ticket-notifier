@@ -1,4 +1,4 @@
-name: BMS Ticket Checker
+name: BMS Ticket Checker 18
 
 on:
   schedule:
