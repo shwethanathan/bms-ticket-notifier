@@ -20,11 +20,11 @@ import requests
 # CONFIGURATION — edit these or set via env vars
 # ──────────────────────────────────────────────────────────────────────
 CONFIG = {
-    "url": https://in.bookmyshow.com/movies/chennai/the-odyssey/buytickets/ET00452034
+    "url": "https://in.bookmyshow.com/movies/chennai/the-odyssey/buytickets/ET00452034"
     ),
-    "dates": 20260730, 20260731, 20260801, 20260802,          # comma-separated YYYYMMDD, empty = from URL
-    "theatre": IMAX,       # substring filter, empty = all
-    "time_period": morning, afternoon, evening, night,      # e.g. "evening,night", empty = all
+    "dates": [20260730, 20260731, 20260801, 20260802],          # comma-separated YYYYMMDD, empty = from URL
+    "theatre": "IMAX",       # substring filter, empty = all
+    "time_period": "morning", "afternoon", "evening", "night",      # e.g. "evening,night", empty = all
 }
 
 
@@ -385,7 +385,7 @@ def _cat_status_label(status):
     return AVAIL_STATUS_MAP.get(status, ("UNKNOWN", ""))[0]
 
 
-NTFY_TOPIC = os.getenv("NTFY_TOPIC", "")
+NTFY_TOPIC = "shwetha-odyssey-07"
 
 def send_ntfy(subject, changes, shows, movie_info):
     topic = NTFY_TOPIC.strip()
