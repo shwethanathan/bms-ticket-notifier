@@ -14,7 +14,7 @@ COOKIE = "__cf_bm=9y8FpWmhfhXGHT.ckgOzhY1kwbNu0jAQQUhgjTVOkZA-1785309670.1714568
 
 STATE_FILE = Path("date_state.json")
 
-NTFY_TOPIC = "YOUR_NTFY_TOPIC"
+NTFY_TOPIC = "shwetha-odyssey-07"
 
 # ==========================================================
 
